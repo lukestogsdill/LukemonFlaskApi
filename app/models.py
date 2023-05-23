@@ -36,6 +36,15 @@ class User(db.Model):
         self.password = self.hash_password(data['password'])
         self.tickets = data['tickets']
         self.money = data['money']
+
+    def to_dict(self):
+        data = {
+            'img_url': self.img_url,
+            'username': self.username,
+            'tickets': self.tickets,
+            'money': self.money
+        }
+        return data
     
     def update_from_dict(self, data):
         self.img_url = data['img_url']

@@ -149,3 +149,12 @@ def getFeed():
     for i in query_posts:
         feedData.append(i.to_dict())
     return feedData
+
+@app.route('/getUserData')
+@jwt_required()
+def getUserData():
+    current_user = get_jwt_identity()
+    queried_user = User.query.filter_by(email=current_user).first()
+    user_data = queried_user.to_dict()
+    return user_data
+    
