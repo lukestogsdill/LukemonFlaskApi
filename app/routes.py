@@ -1,9 +1,8 @@
 from app import app
 from .models import User, PokeHash, Lukemon, PostFight
-from flask import jsonify, request, make_response
+from flask import jsonify, request
 from werkzeug.security import check_password_hash
 from flask_jwt_extended import create_access_token, get_jwt_identity, unset_jwt_cookies, jwt_required
-
 
 @app.route('/token', methods=['POST'])
 def create_token():
@@ -11,8 +10,8 @@ def create_token():
     password = request.json.get('password', None)
     queried_user = User.query.filter_by(email=email).first()
     if queried_user and check_password_hash(queried_user.password, password):
-        access_token = create_access_token(identity=email)
-        response = {"access_token":access_token}
+        access_token = create_access_token(identity=email, fresh=True)
+        response = jsonify(access_token=access_token)
         return response
     return {'msg': 'Wrong email or password'}, 401
 
@@ -157,4 +156,3 @@ def getUserData():
     queried_user = User.query.filter_by(email=current_user).first()
     user_data = queried_user.to_dict()
     return user_data
-    
