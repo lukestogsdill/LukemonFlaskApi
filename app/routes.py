@@ -1,26 +1,18 @@
 from app import app
 from .models import User, PokeHash, Lukemon, PostFight
-from flask import jsonify, request
-from werkzeug.security import check_password_hash
-from flask_jwt_extended import create_access_token, get_jwt_identity, unset_jwt_cookies, jwt_required
+from flask import jsonify, request, g
+from .auth import basic_auth, token_auth    
 
-@app.route('/token', methods=['POST'])
+@app.route('/token')
+@basic_auth.login_required()
 def create_token():
-    email = request.json.get('email', None)
-    password = request.json.get('password', None)
-    queried_user = User.query.filter_by(email=email).first()
-    if queried_user and check_password_hash(queried_user.password, password):
-        access_token = create_access_token(identity=email, fresh=True)
-        response = jsonify(access_token=access_token)
-        return response
-    return {'msg': 'Wrong email or password'}, 401
+    token = g.current_user.get_token()
+    return{'token': token}
 
 @app.route('/logout', methods=['POST'])
-@jwt_required()
+@token_auth.login_required
 def logout():
-    response = jsonify({'msg': 'logout successful'})
-    unset_jwt_cookies(response)
-    return response
+    pass
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -50,7 +42,6 @@ def register():
     return{'success': True, 'msg': 'Successfully registered!'}, 200
 
 @app.route('/roll', methods = ['POST'])
-@jwt_required()
 def roll():
     new_poke_data = {
         'poke_name': request.json.get('poke_name', None),
@@ -71,9 +62,8 @@ def roll():
     return jsonify({'msg': f'{new_poke_data["poke_name"]} sucessfully caught'})
 
 @app.route('/catch', methods = ['POST'])
-@jwt_required()
 def catch():
-    current_user = get_jwt_identity()
+    current_user = g.currentuser
     poke_name = request.json.get('poke_name')
     queried_user = User.query.filter_by(email=current_user).first()
     queried_poke = PokeHash.query.filter_by(poke_name=poke_name).first()
@@ -91,9 +81,8 @@ def catch():
     return jsonify({'msg': f'successfully caught'})
 
 @app.route('/saveTeam', methods=['POST'])
-@jwt_required()
 def saveTeam():
-    current_user = get_jwt_identity()
+    current_user = g.current_user()
     queried_usermon = User.query.filter_by(email=current_user).first().inventory.all()
     for lukemon in queried_usermon:
         lukemon.remove_from_team()
@@ -105,10 +94,9 @@ def saveTeam():
     return {'msg': 'Successfully saved!'}
 
 @app.route('/getInv', methods=['GET'])
-@jwt_required()
 def getInv():
     inv_data = []
-    current_user = get_jwt_identity()
+    current_user = g.current_user()
     queried_inv = User.query.filter_by(email=current_user).first().inventory.all()
     for i in queried_inv:
         inv_data.append(i.to_dict())
@@ -116,7 +104,7 @@ def getInv():
     return inv_data
 
 @app.route('/getTeam/<int:bankerId>', methods=['GET'])
-@jwt_required()
+
 def getTeam(bankerId):
     team_data = []
     queried_inv = User.query.filter_by(id=bankerId).first().inventory.all()
@@ -127,9 +115,8 @@ def getTeam(bankerId):
     return team_data
 
 @app.route('/postFight', methods=['POST'])
-@jwt_required()
 def postFight():
-    current_user = get_jwt_identity()
+    current_user = g.current_user()
     queried_user = User.query.filter_by(email=current_user).first()
     post_data = {
         'caption': request.json.get('caption'),
@@ -150,9 +137,15 @@ def getFeed():
     return feedData
 
 @app.route('/getUserData')
-@jwt_required()
+@token_auth.login_required
 def getUserData():
-    current_user = get_jwt_identity()
+    current_user = g.current_user()
     queried_user = User.query.filter_by(email=current_user).first()
     user_data = queried_user.to_dict()
     return user_data
+
+
+@app.route('/test')
+@token_auth.login_required
+def test():
+    return 'hello'

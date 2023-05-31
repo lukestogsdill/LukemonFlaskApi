@@ -1,7 +1,7 @@
 from app import db
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import secrets
 
 inventory=db.Table('inventory',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
@@ -17,6 +17,7 @@ class User(db.Model):
     tickets = db.Column(db.Integer, nullable=False)
     money = db.Column(db.Integer, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow())
+    token = db.Column(db.String, unique=True)
     post_fight = db.relationship('PostFight', backref='author', lazy='dynamic')
     inventory = db.relationship('Lukemon', secondary=inventory, backref='inventory', lazy='dynamic') 
 
@@ -46,6 +47,19 @@ class User(db.Model):
         }
         return data
     
+    def get_token(self):
+        if self.token:
+            return self.token
+        self.token = secrets.token_urlsafe(32)
+        self.save_to_db()
+        return self.token
+    
+    def check_token(token):
+        user = User.query.filter_by(token=token).first()
+        if not user:
+            return None
+        return user
+
     def update_from_dict(self, data):
         self.img_url = data['img_url']
         self.username = data['username']
