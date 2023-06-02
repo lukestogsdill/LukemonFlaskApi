@@ -64,6 +64,9 @@ class User(db.Model):
         self.img_url = data['img_url']
         self.username = data['username']
 
+    def fight_reward(self):
+        self.money += 10
+
     def save_to_db(self):
         db.session.add(self)
         db.session.commit()

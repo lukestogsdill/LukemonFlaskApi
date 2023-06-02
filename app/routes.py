@@ -42,6 +42,7 @@ def register():
     return{'success': True, 'msg': 'Successfully registered!'}, 200
 
 @app.route('/roll', methods = ['POST'])
+@token_auth.login_required
 def roll():
     new_poke_data = {
         'poke_name': request.json.get('poke_name', None),
@@ -52,7 +53,6 @@ def roll():
         'defe': request.json.get('defe', None),
         'speed':request.json.get('speed', None)
     }
-
     poke_check = PokeHash.query.filter_by(poke_name=new_poke_data['poke_name']).first()
     if poke_check == None:
         new_poke_hash = PokeHash()
@@ -62,10 +62,9 @@ def roll():
     return jsonify({'msg': f'{new_poke_data["poke_name"]} sucessfully caught'})
 
 @app.route('/catch', methods = ['POST'])
+@token_auth.login_required
 def catch():
-    current_user = g.currentuser
     poke_name = request.json.get('poke_name')
-    queried_user = User.query.filter_by(email=current_user).first()
     queried_poke = PokeHash.query.filter_by(poke_name=poke_name).first()
     new_catch_data = {
         'damage': request.json.get('damage'),
@@ -77,13 +76,13 @@ def catch():
     new_lukemon = Lukemon()
     new_lukemon.from_dict(new_catch_data)
     new_lukemon.save_to_db()
-    queried_user.add_to_inventory(new_lukemon)
-    return jsonify({'msg': f'successfully caught'})
+    g.current_user.add_to_inventory(new_lukemon)
+    return jsonify({'msg': f'{new_lukemon.lukemon.poke_name} successfully caught'})
 
 @app.route('/saveTeam', methods=['POST'])
+@token_auth.login_required
 def saveTeam():
-    current_user = g.current_user()
-    queried_usermon = User.query.filter_by(email=current_user).first().inventory.all()
+    queried_usermon = g.current_user.inventory.all()
     for lukemon in queried_usermon:
         lukemon.remove_from_team()
     ids = request.json.get('ids')
@@ -93,18 +92,18 @@ def saveTeam():
         queried_lukemon.update_to_db()
     return {'msg': 'Successfully saved!'}
 
-@app.route('/getInv', methods=['GET'])
+@app.route('/getInv')
+@token_auth.login_required
 def getInv():
     inv_data = []
-    current_user = g.current_user()
-    queried_inv = User.query.filter_by(email=current_user).first().inventory.all()
+    queried_inv = g.current_user.inventory.all()
     for i in queried_inv:
         inv_data.append(i.to_dict())
     print(inv_data)
     return inv_data
 
-@app.route('/getTeam/<int:bankerId>', methods=['GET'])
-
+@app.route('/getTeam/<int:bankerId>')
+@token_auth.login_required
 def getTeam(bankerId):
     team_data = []
     queried_inv = User.query.filter_by(id=bankerId).first().inventory.all()
@@ -115,12 +114,11 @@ def getTeam(bankerId):
     return team_data
 
 @app.route('/postFight', methods=['POST'])
+@token_auth.login_required
 def postFight():
-    current_user = g.current_user()
-    queried_user = User.query.filter_by(email=current_user).first()
     post_data = {
         'caption': request.json.get('caption'),
-        'user_id': queried_user.id
+        'user_id': g.current_user.id
     }
     print(post_data)
     new_post = PostFight()
@@ -139,13 +137,15 @@ def getFeed():
 @app.route('/getUserData')
 @token_auth.login_required
 def getUserData():
-    current_user = g.current_user()
-    queried_user = User.query.filter_by(email=current_user).first()
-    user_data = queried_user.to_dict()
+    user_data = g.current_user.to_dict()
     return user_data
 
 
-@app.route('/test')
+@app.route('/fightReward')
 @token_auth.login_required
-def test():
-    return 'hello'
+def fightReward():
+    current_user = g.current_user
+    current_user.fight_reward()
+    current_user.save_to_db()
+    return jsonify({'msg':'Congrats here is 10 Money!'})
+
