@@ -18,7 +18,6 @@ def logout():
 def register():
     new_user_data = {
         'img_url': request.json.get('url',None),
-        'email': request.json.get('email', None),
         'username': request.json.get('username', None),
         'password': request.json.get('password', None),
         'tickets': 10,
@@ -26,20 +25,19 @@ def register():
     }
     confirmPassword = request.json.get('confirmPassword', None)
     
-    print(new_user_data)
-    user_exists = User.query.filter_by(email = new_user_data['email']).first()
+    user_exists = User.query.filter_by(username = new_user_data['username']).first()
     print(user_exists)
-    if user_exists:
-        return {"success": False, "msg": "Email already taken"}, 402
-    
     if new_user_data['password'] != confirmPassword:
-        return{'success': False, 'msg': 'Passwords did not match'}, 402
+        return{'msg': 'Passwords did not match'}, 400
+    if user_exists:
+        return {"msg": "Username already taken"}, 400
+    
     
     new_user = User()
     new_user.from_dict(new_user_data)
     new_user.save_to_db()
 
-    return{'success': True, 'msg': 'Successfully registered!'}, 200
+    return{'msg': 'Successfully registered!'}, 200
 
 @app.route('/roll', methods = ['POST'])
 @token_auth.login_required
@@ -113,6 +111,17 @@ def getTeam(bankerId):
     print(team_data)
     return team_data
 
+@app.route('/getPlayerTeam')
+@token_auth.login_required
+def getPlayerTeam():
+    queried_inv = g.current_user.inventory.all()
+    team_data = []
+    for i in queried_inv:
+        if i.onTeam != None:
+            team_data.append(i.to_dict())
+    print(team_data)
+    return team_data
+
 @app.route('/postFight', methods=['POST'])
 @token_auth.login_required
 def postFight():
@@ -149,3 +158,21 @@ def fightReward():
     current_user.save_to_db()
     return jsonify({'msg':'Congrats here is 10 Money!'})
 
+@app.route('/delPoke/<int:pokeId>', methods=['GET'])
+@token_auth.login_required
+def del_poke(pokeId):
+    poke = Lukemon.query.filter_by(id=pokeId).first()
+    poke.del_poke()
+    return {'msg': 'Successfully Deleted'}
+
+@app.route('/updateCurr', methods=['POST'])
+@token_auth.login_required
+def update_curr():
+    current_user = g.current_user
+    curr_data = {
+        'tickets': request.json.get('tickets'),
+        'money': request.json.get('money')
+    }
+    current_user.update_curr(curr_data)
+    current_user.save_to_db()
+    return {'msg': 'curr updated'}

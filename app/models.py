@@ -11,8 +11,7 @@ inventory=db.Table('inventory',
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     img_url = db.Column(db.String, nullable=True)
-    username = db.Column(db.String, nullable=False)
-    email = db.Column(db.String, nullable=False, unique=True)
+    username = db.Column(db.String, nullable=False, unique=True)
     password = db.Column(db.String, nullable=False)
     tickets = db.Column(db.Integer, nullable=False)
     money = db.Column(db.Integer, nullable=False)
@@ -33,7 +32,6 @@ class User(db.Model):
     def from_dict(self, data):
         self.img_url = data['img_url']
         self.username = data['username']
-        self.email = data['email']
         self.password = self.hash_password(data['password'])
         self.tickets = data['tickets']
         self.money = data['money']
@@ -64,8 +62,9 @@ class User(db.Model):
         self.img_url = data['img_url']
         self.username = data['username']
 
-    def fight_reward(self):
-        self.money += 10
+    def update_curr(self, data):
+        self.money = data['money']
+        self.tickets = data['tickets']
 
     def save_to_db(self):
         db.session.add(self)
@@ -119,18 +118,20 @@ class Lukemon(db.Model):
     crit = db.Column(db.Float, nullable=False)
     accuracy = db.Column(db.Float, nullable=False)
     onTeam = db.Column(db.Integer)
-    isAlive = db.Column(db.Boolean)
     poke_hash_id = db.Column(db.Integer, db.ForeignKey('poke_hash.id'))
 
     def from_dict(self, data):
         self.damage = data['damage']
         self.crit = data['crit']
         self.accuracy = data['accuracy']
-        self.isAlive = True
         self.poke_hash_id = data['poke_hash_id']
     
     def save_to_db(self):
         db.session.add(self)
+        db.session.commit()
+
+    def del_poke(self):
+        db.session.delete(self)
         db.session.commit()
     
     def to_dict(self):
@@ -140,7 +141,6 @@ class Lukemon(db.Model):
             'crit': self.crit,
             'accuracy': self.accuracy,
             'onTeam': self.onTeam,
-            'isAlive': self.isAlive,
             'poke_hash': {
                 'poke_name': self.lukemon.poke_name,
                 'poke_type': self.lukemon.poke_type,
