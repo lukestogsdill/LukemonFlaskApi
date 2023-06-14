@@ -1,7 +1,7 @@
 from app import app
 from .models import User, PokeHash, Lukemon, PostFight
 from flask import jsonify, request, g
-from .auth import basic_auth, token_auth    
+from .auth import basic_auth, token_auth
 
 @app.route('/token')
 @basic_auth.login_required()
@@ -23,12 +23,8 @@ def register():
         'tickets': 10,
         'money': 100
     }
-    confirmPassword = request.json.get('confirmPassword', None)
     
     user_exists = User.query.filter_by(username = new_user_data['username']).first()
-    print(user_exists)
-    if new_user_data['password'] != confirmPassword:
-        return{'msg': 'Passwords did not match'}, 400
     if user_exists:
         return {"msg": "Username already taken"}, 400
     
@@ -56,7 +52,7 @@ def roll():
         new_poke_hash = PokeHash()
         new_poke_hash.from_dict(new_poke_data)
         new_poke_hash.save_to_db()
-    print(new_poke_data)
+
     return jsonify({'msg': f'{new_poke_data["poke_name"]} sucessfully caught'})
 
 @app.route('/catch', methods = ['POST'])
@@ -70,7 +66,7 @@ def catch():
         'accuracy': request.json.get('accuracy'),
         'poke_hash_id': queried_poke.id,
     }
-    print(queried_poke.id)
+
     new_lukemon = Lukemon()
     new_lukemon.from_dict(new_catch_data)
     new_lukemon.save_to_db()
@@ -97,7 +93,6 @@ def getInv():
     queried_inv = g.current_user.inventory.all()
     for i in queried_inv:
         inv_data.append(i.to_dict())
-    print(inv_data)
     return inv_data
 
 @app.route('/getTeam/<int:bankerId>')
@@ -108,7 +103,6 @@ def getTeam(bankerId):
     for i in queried_inv:
         if i.onTeam != None:
             team_data.append(i.to_dict())
-    print(team_data)
     return team_data
 
 @app.route('/getPlayerTeam')
@@ -119,17 +113,24 @@ def getPlayerTeam():
     for i in queried_inv:
         if i.onTeam != None:
             team_data.append(i.to_dict())
-    print(team_data)
     return team_data
 
 @app.route('/postFight', methods=['POST'])
 @token_auth.login_required
 def postFight():
+    user_id = g.current_user.id
+    post_exists = PostFight().query.filter_by(user_id=user_id).first()
+    if post_exists:
+        post_exists.caption = request.json.get('caption')
+        post_exists.team_urls = request.json.get('team_urls')
+        post_exists.update_to_db()
+        return {'msg': 'Post Successfully Updated!'}, 200
+    
     post_data = {
         'caption': request.json.get('caption'),
+        'team_urls': request.json.get('team_urls'),
         'user_id': g.current_user.id
     }
-    print(post_data)
     new_post = PostFight()
     new_post.from_dict(post_data)
     new_post.save_to_db()
@@ -139,6 +140,7 @@ def postFight():
 def getFeed():
     feedData = []
     query_posts = PostFight().query.all()
+
     for i in query_posts:
         feedData.append(i.to_dict())
     return feedData

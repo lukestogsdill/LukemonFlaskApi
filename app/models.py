@@ -1,6 +1,6 @@
 from app import db
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
 import secrets
 
 inventory=db.Table('inventory',
@@ -20,19 +20,15 @@ class User(db.Model):
     post_fight = db.relationship('PostFight', backref='author', lazy='dynamic')
     inventory = db.relationship('Lukemon', secondary=inventory, backref='inventory', lazy='dynamic') 
 
-    # hashes our password
-    def hash_password(self, original_password):
-        return generate_password_hash(original_password)
-    
     # check password hash
     def check_hash_password(self, login_password):
-        return check_password_hash(self.password, login_password)
-    
+        return bcrypt.checkpw(login_password.encode('utf-8'), self.password.encode('utf-8'))
+
     # use this method to register our user attributes
     def from_dict(self, data):
         self.img_url = data['img_url']
         self.username = data['username']
-        self.password = self.hash_password(data['password'])
+        self.password = data['password']
         self.tickets = data['tickets']
         self.money = data['money']
 
@@ -167,10 +163,12 @@ class PostFight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     caption = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=datetime.utcnow())
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    team_urls = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
 
     def from_dict(self, data):
         self.caption = data['caption']
+        self.team_urls = data['team_urls']
         self.user_id = data['user_id']
 
     def save_to_db(self):
@@ -181,12 +179,16 @@ class PostFight(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+    def update_to_db(self):
+        db.session.commit()
+
     def to_dict(self):
         data = {
             'caption': self.caption,
-            'date_created':  self.date_created,
+            'date_created': self.date_created,
             'user_id': self.user_id,
             'username': self.author.username,
-            'user_img': self.author.img_url
+            'user_img': self.author.img_url,
+            'team_urls': self.team_urls
         }
         return data
