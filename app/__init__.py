@@ -16,7 +16,7 @@ bcrypt = Bcrypt()
  # Init app
 app = Flask(__name__)
 if __name__ == "__main__":
-    app.run(host='192.168.0.117')
+    app.run(host='0.0.0.0')
 
 # Link the config
 app.config.from_object(Config)
