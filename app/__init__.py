@@ -32,6 +32,8 @@ from app import models
 from app import routes
 from app import auth
 
-def create_app():
-    return app
+from waitress import serv
+
+if __name__ == "__main__":
+    serv(app, host='0.0.0.0', port=8000)
 
