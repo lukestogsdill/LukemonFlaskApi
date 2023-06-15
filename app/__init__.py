@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from waitress import serve
 
 # INITIALIZING SECTION
 db = SQLAlchemy()
@@ -32,8 +33,6 @@ from app import models
 from app import routes
 from app import auth
 
-from waitress import serv
-
 if __name__ == "__main__":
-    serv(app, host='0.0.0.0', port=8000)
+    serve(app, host='0.0.0.0', port=8000)
 
