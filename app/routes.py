@@ -178,3 +178,9 @@ def update_curr():
     current_user.update_curr(curr_data)
     current_user.save_to_db()
     return {'msg': 'curr updated'}
+
+@app.route('/invCount')
+@token_auth.login_required
+def invCount():
+    inv_count = len(g.current_user.inventory.all())
+    return { 'inv_count':inv_count}
