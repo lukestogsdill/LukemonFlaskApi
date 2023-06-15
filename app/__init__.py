@@ -14,9 +14,9 @@ cors = CORS()
 bcrypt = Bcrypt()
 
  # Init app
+
 app = Flask(__name__)
-if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+
 
 # Link the config
 app.config.from_object(Config)
@@ -31,3 +31,7 @@ bcrypt.init_app(app)
 from app import models
 from app import routes
 from app import auth
+
+def create_app():
+    return app
+
