@@ -1,7 +1,9 @@
 from app import app
 from .models import User, PokeHash, Lukemon, PostFight
+from datetime import datetime
 from flask import jsonify, request, g
 from .auth import basic_auth, token_auth
+import random
 
 @app.route('/token')
 @basic_auth.login_required()
@@ -123,6 +125,7 @@ def postFight():
     if post_exists:
         post_exists.caption = request.json.get('caption')
         post_exists.team_urls = request.json.get('team_urls')
+        post_exists.date_created = datetime.utcnow()
         post_exists.update_to_db()
         return {'msg': 'Post Successfully Updated!'}, 200
     
@@ -184,3 +187,24 @@ def update_curr():
 def invCount():
     inv_count = len(g.current_user.inventory.all())
     return { 'inv_count':inv_count}
+
+@app.route('/create_guest', methods=['POST'])
+def create_guest():
+    num = int(random.random()*10000)
+    new_user_data = {
+        'img_url': 'https://i.imgur.com/mpLsi9t.jpg',
+        'username': f'Guest{num}',
+        'password': request.json.get('password'),
+        'tickets': 10,
+        'money': 100
+    }
+    
+    user_exists = User.query.filter_by(username = new_user_data['username']).first()
+    if user_exists:
+        return {"msg": "Failed to generate new user, please try again"}, 400
+    
+    new_user = User()
+    new_user.from_dict(new_user_data)
+    new_user.save_to_db()
+
+    return{'username': new_user_data['username']}, 200
