@@ -1,8 +1,10 @@
 from app import app
+import requests
 from .models import User, PokeHash, Lukemon, PostFight
 from datetime import datetime
 from flask import jsonify, request, g
 from .auth import basic_auth, token_auth
+import math
 import random
 
 @app.route('/token')
@@ -44,6 +46,7 @@ def roll():
         'poke_name': request.json.get('poke_name', None),
         'poke_type': request.json.get('poke_type', None),
         'sprite_url': request.json.get('sprite_url', None),
+        'shiny_sprite_url'
         'hp': request.json.get('hp', None),
         'att': request.json.get('att', None),
         'defe': request.json.get('defe', None),
@@ -57,6 +60,12 @@ def roll():
 
     return jsonify({'msg': f'{new_poke_data["poke_name"]} sucessfully caught'})
 
+@app.route('/getPokeHash/<int:pokename>')
+def getPokeHash(pokename):
+    queried_poke = PokeHash.query.filter_by(id=pokename).first()
+    data = queried_poke.to_dict()
+    return data
+
 @app.route('/catch', methods = ['POST'])
 @token_auth.login_required
 def catch():
@@ -67,6 +76,7 @@ def catch():
         'crit': request.json.get('crit'),
         'accuracy': request.json.get('accuracy'),
         'poke_hash_id': queried_poke.id,
+        'shiny': request.json.get('shiny'),
     }
 
     new_lukemon = Lukemon()
@@ -208,3 +218,32 @@ def create_guest():
     new_user.save_to_db()
 
     return{'username': new_user_data['username']}, 200
+
+# this hashes all the pokemon info used for lukemon from poke.api
+@app.route('/pokeHaul', methods=['GET'])
+def pokeHaul():
+    # i = 1
+    # pokeDict = {}
+    # while i <= 649:
+    #     req = requests.get(f'https://pokeapi.co/api/v2/pokemon/{i}')
+    #     data = req.json()
+    #     types_array = []
+    #     for entry in data['types']:
+    #         types_array.append(entry['type']['name'])
+    #     pokeDict = {
+    #         'poke_name': data['name'],
+    #         'poke_type': types_array,
+    #         'sprite_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_default'],
+    #         'value': math.ceil(data['base_experience'] / 20),
+    #         'hp': int(data['stats'][0]['base_stat']*1.75),
+    #         'att': data['stats'][1]['base_stat'] + data['stats'][3]['base_stat'],
+    #         'defe': data['stats'][2]['base_stat'] + data['stats'][4]['base_stat'],
+    #         'speed': data['stats'][5]['base_stat'],
+    #         'shiny_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_shiny'],
+    #     }
+    #     pokemon = PokeHash()
+    #     pokemon.from_dict(pokeDict)
+    #     pokemon.save_to_db()
+    #     print(pokemon.poke_name)
+    #     i+=1
+    return 'done'

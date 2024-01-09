@@ -86,8 +86,10 @@ class User(db.Model):
 class PokeHash(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     poke_name = db.Column(db.String, nullable=False)
-    poke_type = db.Column(db.String, nullable=False)
+    poke_type = db.Column(db.ARRAY(db.String), nullable=False)
     sprite_url = db.Column(db.String, nullable=False)
+    shiny_url = db.Column(db.String)
+    value = db.Column(db.Integer, nullable=False)
     hp = db.Column(db.Integer, nullable=False)
     att = db.Column(db.Integer, nullable=False)
     defe = db.Column(db.Integer, nullable=False)
@@ -98,10 +100,29 @@ class PokeHash(db.Model):
         self.poke_name = data['poke_name']
         self.poke_type = data['poke_type']
         self.sprite_url = data['sprite_url']
+        self.value = data['value']
         self.hp = data['hp']
         self.att = data['att'] 
         self.defe = data['defe'] 
         self.speed = data['speed']
+        self.shiny_url = data['shiny_url']
+    
+    def from_shiny(self, data):
+        self.shiny_url = data['shiny_url']
+    
+    def to_dict(self):
+        data = {
+            'poke_name': self.poke_name,
+            'poke_type': self.poke_type,
+            'sprite_url': self.sprite_url,
+            'shiny_url': self.shiny_url,
+            'value': self.value,
+            'hp': self.hp,
+            'att': self.att,
+            'defe': self.defe,
+            'speed': self.speed,
+        }
+        return data
 
     def save_to_db(self):
         db.session.add(self)
@@ -113,6 +134,7 @@ class Lukemon(db.Model):
     damage = db.Column(db.Integer, nullable=False)
     crit = db.Column(db.Float, nullable=False)
     accuracy = db.Column(db.Float, nullable=False)
+    shiny = db.Column(db.Boolean)
     onTeam = db.Column(db.Integer)
     poke_hash_id = db.Column(db.Integer, db.ForeignKey('poke_hash.id'))
 
@@ -121,6 +143,8 @@ class Lukemon(db.Model):
         self.crit = data['crit']
         self.accuracy = data['accuracy']
         self.poke_hash_id = data['poke_hash_id']
+        self.shiny = data['shiny']
+
     
     def save_to_db(self):
         db.session.add(self)
@@ -136,11 +160,13 @@ class Lukemon(db.Model):
             'damage': self.damage,
             'crit': self.crit,
             'accuracy': self.accuracy,
+            'shiny': self.shiny,
             'onTeam': self.onTeam,
             'poke_hash': {
                 'poke_name': self.lukemon.poke_name,
                 'poke_type': self.lukemon.poke_type,
                 'sprite_url': self.lukemon.sprite_url,
+                'shiny_url': self.lukemon.shiny_url,
                 'hp': self.lukemon.hp,
                 'att': self.lukemon.att,
                 'defe': self.lukemon.defe,
@@ -151,6 +177,9 @@ class Lukemon(db.Model):
     
     def add_to_team(self, data):
         self.onTeam = data
+    
+    def update_shiny(self):
+        self.shiny = True
 
     def remove_from_team(self):
         self.onTeam = None
