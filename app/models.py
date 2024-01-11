@@ -165,6 +165,7 @@ class Lukemon(db.Model):
             'poke_hash': {
                 'poke_name': self.lukemon.poke_name,
                 'poke_type': self.lukemon.poke_type,
+                'value': self.lukemon.value,
                 'sprite_url': self.lukemon.sprite_url,
                 'shiny_url': self.lukemon.shiny_url,
                 'hp': self.lukemon.hp,
@@ -192,12 +193,14 @@ class PostFight(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     caption = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=datetime.utcnow())
-    team_urls = db.Column(db.String, nullable=False)
+    team_urls = db.Column(db.ARRAY(db.String), nullable=False)
+    team_value= db.Column(db.Integer, nullable=False, default=20)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
 
     def from_dict(self, data):
         self.caption = data['caption']
         self.team_urls = data['team_urls']
+        self.team_value = data['team_value']
         self.user_id = data['user_id']
 
     def save_to_db(self):
@@ -218,6 +221,12 @@ class PostFight(db.Model):
             'user_id': self.user_id,
             'username': self.author.username,
             'user_img': self.author.img_url,
-            'team_urls': self.team_urls
+            'team_urls': self.team_urls,
+            'team_value': self.team_value
         }
         return data
+    
+
+
+
+    

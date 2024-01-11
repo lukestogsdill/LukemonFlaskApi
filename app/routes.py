@@ -39,38 +39,35 @@ def register():
 
     return{'msg': 'Successfully registered!'}, 200
 
-@app.route('/roll', methods = ['POST'])
-@token_auth.login_required
-def roll():
-    new_poke_data = {
-        'poke_name': request.json.get('poke_name', None),
-        'poke_type': request.json.get('poke_type', None),
-        'sprite_url': request.json.get('sprite_url', None),
-        'shiny_sprite_url'
-        'hp': request.json.get('hp', None),
-        'att': request.json.get('att', None),
-        'defe': request.json.get('defe', None),
-        'speed':request.json.get('speed', None)
-    }
-    poke_check = PokeHash.query.filter_by(poke_name=new_poke_data['poke_name']).first()
-    if poke_check == None:
-        new_poke_hash = PokeHash()
-        new_poke_hash.from_dict(new_poke_data)
-        new_poke_hash.save_to_db()
+@app.route('/getBulkPokeHash', methods=['POST'])
+def get_bulk_poke_hash():
+    try:
+        data = request.get_json()
+        poke_names = data.get('pokeNames', [])
 
-    return jsonify({'msg': f'{new_poke_data["poke_name"]} sucessfully caught'})
+        if not poke_names:
+            return jsonify({'error': 'No Pokémon names provided'}), 400
 
-@app.route('/getPokeHash/<int:pokename>')
-def getPokeHash(pokename):
-    queried_poke = PokeHash.query.filter_by(id=pokename).first()
-    data = queried_poke.to_dict()
-    return data
+        queried_pokes = []
+        for poke_name in poke_names:
+            poke = PokeHash.query.filter_by(id=poke_name).first()
+            if poke:
+                queried_pokes.append(poke.to_dict())
+
+        if not queried_pokes:
+            return jsonify({'error': 'No Pokémon found'}), 404
+
+        return jsonify(queried_pokes)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 @app.route('/catch', methods = ['POST'])
 @token_auth.login_required
 def catch():
     poke_name = request.json.get('poke_name')
-    queried_poke = PokeHash.query.filter_by(poke_name=poke_name).first()
+    queried_poke = PokeHash.query.filter_by(id=poke_name).first()
     new_catch_data = {
         'damage': request.json.get('damage'),
         'crit': request.json.get('crit'),
@@ -135,13 +132,16 @@ def postFight():
     if post_exists:
         post_exists.caption = request.json.get('caption')
         post_exists.team_urls = request.json.get('team_urls')
+        post_exists.team_value = request.json.get('team_value')
         post_exists.date_created = datetime.utcnow()
         post_exists.update_to_db()
+        print(post_exists.team_urls)
         return {'msg': 'Post Successfully Updated!'}, 200
     
     post_data = {
         'caption': request.json.get('caption'),
         'team_urls': request.json.get('team_urls'),
+        'team_value': request.json.get('team_value'),
         'user_id': g.current_user.id
     }
     new_post = PostFight()
@@ -149,14 +149,19 @@ def postFight():
     new_post.save_to_db()
     return {'msg': 'Fight Posted!'}
 
-@app.route('/getFeed', methods=['GET'])
-def getFeed():
-    feedData = []
-    query_posts = PostFight().query.all()
-
-    for i in query_posts:
-        feedData.append(i.to_dict())
-    return feedData
+@app.route('/getFeed')
+def get_feed():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    query_posts = PostFight.query.order_by(PostFight.date_created.asc()).paginate()
+    print(query_posts.items)
+    feed_data = {
+        'posts': [post.to_dict() for post in query_posts.items],
+        'total_pages': query_posts.pages,
+        'current_page': query_posts.page,
+        'total_posts': query_posts.total
+    }
+    return feed_data
 
 @app.route('/getUserData')
 @token_auth.login_required
@@ -222,28 +227,28 @@ def create_guest():
 # this hashes all the pokemon info used for lukemon from poke.api
 @app.route('/pokeHaul', methods=['GET'])
 def pokeHaul():
-    # i = 1
-    # pokeDict = {}
-    # while i <= 649:
-    #     req = requests.get(f'https://pokeapi.co/api/v2/pokemon/{i}')
-    #     data = req.json()
-    #     types_array = []
-    #     for entry in data['types']:
-    #         types_array.append(entry['type']['name'])
-    #     pokeDict = {
-    #         'poke_name': data['name'],
-    #         'poke_type': types_array,
-    #         'sprite_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_default'],
-    #         'value': math.ceil(data['base_experience'] / 20),
-    #         'hp': int(data['stats'][0]['base_stat']*1.75),
-    #         'att': data['stats'][1]['base_stat'] + data['stats'][3]['base_stat'],
-    #         'defe': data['stats'][2]['base_stat'] + data['stats'][4]['base_stat'],
-    #         'speed': data['stats'][5]['base_stat'],
-    #         'shiny_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_shiny'],
-    #     }
-    #     pokemon = PokeHash()
-    #     pokemon.from_dict(pokeDict)
-    #     pokemon.save_to_db()
-    #     print(pokemon.poke_name)
-    #     i+=1
+    i = 1
+    pokeDict = {}
+    while i <= 649:
+        req = requests.get(f'https://pokeapi.co/api/v2/pokemon/{i}')
+        data = req.json()
+        types_array = []
+        for entry in data['types']:
+            types_array.append(entry['type']['name'])
+        pokeDict = {
+            'poke_name': data['name'],
+            'poke_type': types_array,
+            'sprite_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_default'],
+            'value': math.ceil(data['base_experience'] / 20),
+            'hp': int(data['stats'][0]['base_stat']*1.75),
+            'att': data['stats'][1]['base_stat'] + data['stats'][3]['base_stat'],
+            'defe': data['stats'][2]['base_stat'] + data['stats'][4]['base_stat'],
+            'speed': data['stats'][5]['base_stat'],
+            'shiny_url': data['sprites']['versions']['generation-v']['black-white']['animated']['front_shiny'],
+        }
+        pokemon = PokeHash()
+        pokemon.from_dict(pokeDict)
+        pokemon.save_to_db()
+        print(pokemon.poke_name)
+        i+=1
     return 'done'

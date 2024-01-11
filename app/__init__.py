@@ -11,7 +11,6 @@ import os
 db = SQLAlchemy()
 migrate = Migrate()
 moment = Moment()
-cors = CORS()
 bcrypt = Bcrypt()
 
  # Init app
@@ -26,9 +25,10 @@ app.config.from_object(Config)
 db.init_app(app)
 migrate.init_app(app, db)
 moment.init_app(app)
-cors.init_app(app)
 bcrypt.init_app(app)
 
+CORS(app, origins=('*'))
+# 'https://lukemon.netlify.app', 'http://localhost:3000'
 from app import models
 from app import routes
 from app import auth
