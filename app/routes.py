@@ -159,8 +159,10 @@ def get_feed():
         'posts': [post.to_dict() for post in query_posts.items],
         'total_pages': query_posts.pages,
         'current_page': query_posts.page,
-        'total_posts': query_posts.total
+        'total_posts': query_posts.total,
+        'per_page': per_page
     }
+    print(feed_data)
     return feed_data
 
 @app.route('/getUserData')
