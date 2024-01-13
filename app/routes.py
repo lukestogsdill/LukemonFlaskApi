@@ -153,8 +153,12 @@ def postFight():
 def get_feed():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
-    query_posts = PostFight.query.order_by(PostFight.date_created.asc()).paginate()
-    print(query_posts.items)
+    filter = request.args.get('filter', 'Date', type=str)
+
+    if filter == 'Date':
+        query_posts = PostFight.query.order_by(PostFight.date_created.desc()).paginate()
+    elif filter == 'Value':
+        query_posts = PostFight.query.order_by(PostFight.team_value.desc()).paginate()
     feed_data = {
         'posts': [post.to_dict() for post in query_posts.items],
         'total_pages': query_posts.pages,
@@ -162,7 +166,6 @@ def get_feed():
         'total_posts': query_posts.total,
         'per_page': per_page
     }
-    print(feed_data)
     return feed_data
 
 @app.route('/getUserData')
