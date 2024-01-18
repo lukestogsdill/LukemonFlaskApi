@@ -27,6 +27,14 @@ def register():
         'tickets': 10,
         'money': 100
     }
+
+    starter_data = {
+        'poke_hash_id': request.json.get('poke_hash_id', None),
+        'damage': 100,
+        'crit': 50,
+        'accuracy': 60,
+        'shiny': False
+    }
     
     user_exists = User.query.filter_by(username = new_user_data['username']).first()
     if user_exists:
@@ -36,6 +44,16 @@ def register():
     new_user = User()
     new_user.from_dict(new_user_data)
     new_user.save_to_db()
+
+    starter_luke = Lukemon()
+    starter_luke.from_dict(starter_data)
+    starter_luke.save_to_db()
+    new_user.add_to_inventory(starter_luke)
+
+    starter_luke.add_to_team(0)
+    starter_luke.update_to_db()
+
+
 
     return{'msg': 'Successfully registered!'}, 200
 
@@ -218,6 +236,14 @@ def create_guest():
         'tickets': 10,
         'money': 100
     }
+
+    starter_data = {
+        'poke_hash_id': 1,
+        'damage': 100,
+        'crit': 50,
+        'accuracy': 60,
+        'shiny': False
+    }
     
     user_exists = User.query.filter_by(username = new_user_data['username']).first()
     if user_exists:
@@ -226,6 +252,14 @@ def create_guest():
     new_user = User()
     new_user.from_dict(new_user_data)
     new_user.save_to_db()
+
+    starter_luke = Lukemon()
+    starter_luke.from_dict(starter_data)
+    starter_luke.save_to_db()
+    new_user.add_to_inventory(starter_luke)
+
+    starter_luke.add_to_team(0)
+    starter_luke.update_to_db()
 
     return{'username': new_user_data['username']}, 200
 
